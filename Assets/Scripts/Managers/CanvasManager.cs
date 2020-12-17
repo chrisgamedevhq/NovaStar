@@ -7,12 +7,10 @@ public class CanvasManager : MonoBehaviour
 {
     [SerializeField] private GameObject _endPanel;
     [SerializeField] private GameObject _wavePanel;
-    private Button _checkPointButton;
+
     private PlayerHealthAndDamage _player;
     private SpawnManager _spawnManager;
-    private Text _winText;
-    private Text _diedText;
-    private bool _playerDead;
+    [SerializeField] private bool _playerDead = false;
     void Start()
     {
         _spawnManager = GameObject.Find("SpawnManager").GetComponent<SpawnManager>();
@@ -31,47 +29,36 @@ public class CanvasManager : MonoBehaviour
     void Update()
     {
         CheckEndPanelStatus();
-        CheckWinStatus();
     }
 
     void CheckEndPanelStatus()
     {
-        if (!_player.getPlayerStatus())
+        if (_playerDead)
         {
             _endPanel.SetActive(true);
             _wavePanel.SetActive(false);
-            _playerDead = true;
-            _diedText = GameObject.Find("Died_Text").GetComponent<Text>();
-            _diedText.enabled = true;
-            if (_spawnManager.GetCheckPointStatus())
-            {
-                _checkPointButton = GameObject.Find("Checkpoint_Button").GetComponent<Button>();
-                _checkPointButton.interactable = true;
-            }
-        }
-        else
+        } else if (_spawnManager.DidWin() && !_playerDead)
+        {
+            _endPanel.SetActive(true);
+            _wavePanel.SetActive(false);
+        } else
         {
             _endPanel.SetActive(false);
             _wavePanel.SetActive(true);
         }
     }
 
-    void CheckWinStatus()
-    {
-        if (_spawnManager.DidWin()  && _playerDead == false)
-        {       
-            _wavePanel.SetActive(false);
-            _endPanel.SetActive(true);
-
-            _diedText = GameObject.Find("Died_Text").GetComponent<Text>();
-            _diedText.enabled = false;
-
-            _winText = GameObject.Find("Win_Text").GetComponent<Text>();
-            _winText.enabled = true;         
-        }
-    }
     public void SetPlayerDead()
     {
+        _playerDead = true;
+    }
+    public void SetPlayerAlive()
+    {
         _playerDead = false;       
+    }
+
+    public bool GetPlayerDead()
+    {
+        return _playerDead;
     }
 }

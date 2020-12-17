@@ -4,15 +4,8 @@ using UnityEngine;
 
 public class SpawnManager : MonoBehaviour
 {
-    [SerializeField]
-    private bool _stopSpawning = false;
-    [SerializeField]
-    private bool _playerDied = false;
-    [SerializeField] private GameObject _enemyContainer;
-
     // credit to Brackeys start
     private enum SpawnState { SPAWNING, WAITING, COUNTING }
-
     // Serialized Fields start 
     [System.Serializable]
     public class Wave
@@ -25,19 +18,22 @@ public class SpawnManager : MonoBehaviour
     }
     public Wave[] waves;
     public Transform[] spawnPoints;
-    public float timeBetweenWaves = 5f;
-
-    [SerializeField] private int nextWave = 0;
-    [SerializeField] private bool _checkpointReached = false;
+    [SerializeField] private float timeBetweenWaves = 5f;
+    [SerializeField] private int currWave = 0;
     //Serialized Fields end 
 
     private float waveCountdown;
     private float searchCountdown = 1f;
+    private bool _stopSpawning = false;
+    private bool _playerDied = false;
+    private bool _checkpointReached = false;
+
     private SpawnState state = SpawnState.COUNTING;
-    
+
     private GameObject[] objectsToDestroy;
     private GameObject[] powerupToDestroy;
     private GameObject _player;
+
     private WavePanelManager _wavePanelManager;
     private PlayerScore _playerScore;
     private Score_Display_UI _scoreDisplayUI;
@@ -48,10 +44,10 @@ public class SpawnManager : MonoBehaviour
     void Start()
     {
         _player = GameObject.Find("Player");
+        _playerHP = GameObject.Find("Player").GetComponent<PlayerHealthAndDamage>();
         _wavePanelManager = GameObject.Find("Wave_Panel").GetComponent<WavePanelManager>();
         _playerScore = GameObject.Find("Player").GetComponent<PlayerScore>();
         _scoreDisplayUI = GameObject.Find("Canvas").GetComponent<Score_Display_UI>();
-        _playerHP = GameObject.Find("Player").GetComponent<PlayerHealthAndDamage>();
         _bgColor = GameObject.Find("Environment").GetComponent<BackgroundColorChange>();
         _canvasManager = GameObject.Find("Canvas").GetComponent<CanvasManager>();
 
@@ -71,12 +67,10 @@ public class SpawnManager : MonoBehaviour
         {
             Debug.LogError("Cant find WavePanelManger ui component");
         }
-
-        if(_scoreDisplayUI == null)
+        if (_scoreDisplayUI == null)
         {
             Debug.Log("Cant find the UI for SpawnManager");
         }
-
         if (spawnPoints.Length <= 0)
         {
             Debug.LogError("No SpawnPoints found");
@@ -93,12 +87,13 @@ public class SpawnManager : MonoBehaviour
             _stopSpawning = false;
             _playerScore.SetScore(0f);
             _scoreDisplayUI.UpdateScore(0f);
-            _canvasManager.SetPlayerDead();
+            _canvasManager.SetPlayerAlive();
         }
 
         if (!_player.activeInHierarchy)
         {
             _wavePanelManager.WaveIsDone();
+            _canvasManager.SetPlayerDead();
             _stopSpawning = true;
         }
 
@@ -110,7 +105,7 @@ public class SpawnManager : MonoBehaviour
                 if (!EnemyIsAlive())
                 {
                     WaveCompleted();
-                    _wavePanelManager.UpdateWave(nextWave);
+                    _wavePanelManager.UpdateWave(currWave);
                 }
                 else
                 {
@@ -122,7 +117,7 @@ public class SpawnManager : MonoBehaviour
             {
                 if (state != SpawnState.SPAWNING)
                 {
-                    StartCoroutine(SpawnWave(waves[nextWave]));
+                    StartCoroutine(SpawnWave(waves[currWave]));
                 }
             }
             else
@@ -130,27 +125,25 @@ public class SpawnManager : MonoBehaviour
                 waveCountdown -= Time.deltaTime;
             }
         }
-        if (nextWave >= 3)
+        if (currWave >= 3)
         {
             _checkpointReached = true;
         }
     }
     void WaveCompleted()
     {
-        Debug.Log("Wave Completed " + nextWave);
+        Debug.Log("Wave Completed " + currWave);
         state = SpawnState.COUNTING;
         waveCountdown = timeBetweenWaves;
 
-        if (nextWave + 1 > waves.Length - 1)
+        if (currWave + 1 > waves.Length - 1)
         {
-            //nextWave = 0;
-            Debug.Log("loop");
             _stopSpawning = true;
         }
 
         else
         {
-            nextWave++;
+            currWave++;
         }
     }
     bool EnemyIsAlive()
@@ -201,23 +194,25 @@ public class SpawnManager : MonoBehaviour
 
     public void RestartFromCheckpoint()
     {
-        if (nextWave >= 4 && nextWave <= 6)
+        if (currWave >= 4 && currWave <= 6)
         {
-           nextWave = 3;
+            currWave = 3;
         }
-        if (nextWave >= 7 && nextWave <= 13)
+        if (currWave >= 7 && currWave <= 13)
         {
-            nextWave = 6;
+            currWave = 6;
         }
-        if (nextWave >= 14)
+        if (currWave >= 14)
         {
-            nextWave = 13;
+            currWave = 13;
         }
+        // player is disabled not destroyed on death
         _playerDied = true;
         _player.SetActive(true);
         _player.transform.position = new Vector3(-20, 0, 0);
         _playerHP.PlayerRespawn();
         _bgColor.FinalBossNotActive();
+
         DestroyAllObjects();
         WaveCompleted();
     }
@@ -228,10 +223,11 @@ public class SpawnManager : MonoBehaviour
 
     public bool DidWin()
     {
-        if (nextWave + 1 > waves.Length - 1 && _stopSpawning)
+        if (currWave + 1 > waves.Length - 1 && _stopSpawning)
         {
             return true;
-        } else
+        }
+        else
         {
             return false;
         }
@@ -254,6 +250,6 @@ public class SpawnManager : MonoBehaviour
 
     public float GetWave()
     {
-        return nextWave;
+        return currWave;
     }
 }

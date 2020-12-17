@@ -61,14 +61,9 @@ public class PlayerHealthAndDamage : MonoBehaviour
             Instantiate(_explosionAnim, transform.position, Quaternion.identity);
         }
     }
-
-    public bool getPlayerStatus()
-    {
-        return this.gameObject.activeSelf;
-    }
     public void PlayerRespawn()
     {
-        health = 3f; //keep in here, used for checkpoint system to reset player health
+        health = 3f; 
         AudioManager.Instance.PlayMusic(_bgMusic, 1.0f);
     }
 }
